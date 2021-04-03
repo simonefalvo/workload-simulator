@@ -1,6 +1,9 @@
 # authentication credential file
 auth_config.ini
 
+# intellij stuff
+.idea/
+workload-simulator.iml
 
 
 
