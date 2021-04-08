@@ -1,4 +1,3 @@
-import configparser
 import numpy as np
 
 
@@ -30,5 +29,5 @@ class User:
 
 if __name__ == '__main__':
     for i in range(10):
-        user = User(1, "test", "test@example.com")
+        user = User(1, "test", "test@example.com", 60, 10)
         print(user.avg_event_period)

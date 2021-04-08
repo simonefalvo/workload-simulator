@@ -1,7 +1,10 @@
 from threading import Thread
+import json
 import time
-import numpy as np
 import requests
+import numpy as np
+
+import trending
 
 
 class EventSenderThread(Thread):
@@ -35,13 +38,15 @@ class EventSenderThread(Thread):
         time.sleep(start_delay)
 
         while True:
-            sleep_time = np.random.exponential(scale=self.avg_period)
+            next_avg_period = self.avg_period / (1 + trending.trend)
+            sleep_time = np.random.exponential(scale=next_avg_period)
             time.sleep(sleep_time)
             event = self.event_generator.next()
             self.send_event(event)
 
     def send_event(self, event):
-        response = requests.post(url=self.url, data=event, auth=self.auth)
+        headers = {'Content-type': 'application/json'}
+        response = requests.post(url=self.url, data=event, auth=self.auth, headers=headers)
         print("{}: [{} {}] {}".format(
             self.event_generator.user.sensor_id,
             response.status_code,
@@ -59,9 +64,14 @@ class EventGenerator:
         return self.__user
 
     def build_event(self):
-        # timestamp = time.time()
-        event = "test"
-        return event
+        timestamp = time.time()
+        event = {
+            "data": "test",
+            "timestamp": timestamp,
+            "sensor_id": self.user.sensor_id
+        }
+        json_event = json.dumps(event, indent=2)
+        return json_event
 
     def next(self):
         return self.build_event()

@@ -5,6 +5,7 @@ import numpy as np
 from eventing import EventGenerator
 from eventing import EventSenderThread
 from model import User
+from trending import TrendUpdaterThread
 
 if __name__ == '__main__':
 
@@ -34,6 +35,10 @@ if __name__ == '__main__':
     print("Number of sensors:", sensors_number, file=sys.stderr)
 
     np.random.seed(12345)
+
+    CONV_RATE = config.getint('TREND', 'CONVERGENCE_RATE')
+    trendUpdater = TrendUpdaterThread(convergence=CONV_RATE)
+    trendUpdater.start()
 
     for sensor_id in range(1, sensors_number + 1):
         user = User(sensor_id, "name", "name@example.com", AVG_EVENT_PERIOD, VAR_EVENT_PERIOD)
