@@ -1,10 +1,11 @@
-from threading import Thread
 import json
 import time
 import requests
 import numpy as np
 
 import trending
+from threading import Thread
+from data import wordcount
 
 
 class EventSenderThread(Thread):
@@ -64,9 +65,10 @@ class EventGenerator:
         return self.__user
 
     def build_event(self):
+        data = np.random.choice(wordcount.samples)
         timestamp = time.time()
         event = {
-            "data": "test",
+            "data": data,
             "timestamp": timestamp,
             "sensor_id": self.user.sensor_id
         }
