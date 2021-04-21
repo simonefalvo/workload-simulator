@@ -1,7 +1,11 @@
 import sys
 import configparser
+import time
+
 import numpy as np
 
+import eventing
+import trending
 from eventing import EventGenerator
 from eventing import EventSenderThread
 from model import User
@@ -18,14 +22,16 @@ if __name__ == '__main__':
     config.read('./config.ini')
     auth_config.read('./auth_config.ini')
 
-    K = config.getfloat('SIMULATOR', 'K')    # time compression factor
+    K = config.getfloat('SIMULATOR', 'K')  # time compression factor
+    STOP = config.getint('SIMULATOR', 'STOP')
     GATEWAY_URL = config.get('NETWORK', 'GATEWAY')
     AVG_EVENT_PERIOD = config.getint('USER', 'AVG_EVENT_PERIOD')
     VAR_EVENT_PERIOD = config.getint('USER', 'VAR_EVENT_PERIOD')
     print("Time compression factor: K=", K, file=sys.stderr)
+    print("Simulation duration: %d seconds" % STOP, file=sys.stderr)
     print("Gateway url:", GATEWAY_URL, file=sys.stderr)
-    print("Average user event period:", AVG_EVENT_PERIOD, file=sys.stderr)
-    print("User event period variance:", VAR_EVENT_PERIOD, file=sys.stderr)
+    print("Average user event period: %d seconds" % AVG_EVENT_PERIOD, file=sys.stderr)
+    print("User event period variance: %d seconds" % VAR_EVENT_PERIOD, file=sys.stderr)
 
     USERNAME = auth_config.get('OPENFAAS', 'USERNAME')
     PASSWORD = auth_config.get('OPENFAAS', 'PASSWORD')
@@ -36,11 +42,17 @@ if __name__ == '__main__':
 
     np.random.seed(12345)
 
-    CONV_RATE = config.getint('TREND', 'CONVERGENCE_RATE')
-    trendUpdater = TrendUpdaterThread(convergence=CONV_RATE)
+    CONV_RATE = config.getfloat('TREND', 'CONVERGENCE_RATE')
+    TICK = config.getint('TREND', 'TICK')
+    trendUpdater = TrendUpdaterThread(convergence=CONV_RATE, tick=TICK)
     trendUpdater.start()
 
     for sensor_id in range(1, sensors_number + 1):
         user = User(sensor_id, "name", "name@example.com", AVG_EVENT_PERIOD, VAR_EVENT_PERIOD)
         generator = EventGenerator(user)
         EventSenderThread(generator, K * user.avg_event_period, GATEWAY_URL, auth).start()
+
+    time.sleep(STOP)
+    print("ending simulation...")
+    eventing.stop = True
+    trending.stop = True

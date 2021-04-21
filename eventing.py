@@ -1,4 +1,5 @@
 import json
+import sys
 import time
 import requests
 import numpy as np
@@ -6,6 +7,8 @@ import numpy as np
 import trending
 from threading import Thread
 from data import wordcount
+
+stop = False
 
 
 class EventSenderThread(Thread):
@@ -36,9 +39,12 @@ class EventSenderThread(Thread):
     def run(self):
         # random start (at least 30 seconds of time range)
         start_delay = np.random.uniform(0, max(30.0, self.avg_period))
+        print("user {}: random start = {} seconds"
+              .format(self.event_generator.user.sensor_id, start_delay),
+              file=sys.stderr)
         time.sleep(start_delay)
 
-        while True:
+        while not stop:
             next_avg_period = self.avg_period / (1 + trending.trend)
             sleep_time = np.random.exponential(scale=next_avg_period)
             time.sleep(sleep_time)
@@ -48,11 +54,15 @@ class EventSenderThread(Thread):
     def send_event(self, event):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url=self.url, data=event, auth=self.auth, headers=headers)
-        print("{}: [{} {}] {}".format(
+        #print("{}: [{} {}] {}".format(
+        #    self.event_generator.user.sensor_id,
+        #    response.status_code,
+        #    response.reason,
+        #    response.text))
+        print("{}: [{} {}]".format(
             self.event_generator.user.sensor_id,
             response.status_code,
-            response.reason,
-            response.text))
+            response.reason))
 
 
 class EventGenerator:
