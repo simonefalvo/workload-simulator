@@ -42,9 +42,7 @@ if __name__ == '__main__':
 
     np.random.seed(12345)
 
-    CONV_RATE = config.getfloat('TREND', 'CONVERGENCE_RATE')
-    TICK = config.getint('TREND', 'TICK')
-    trendUpdater = TrendUpdaterThread(convergence=CONV_RATE, tick=TICK)
+    trendUpdater = TrendUpdaterThread()
     trendUpdater.start()
 
     for sensor_id in range(1, sensors_number + 1):
