@@ -1,3 +1,4 @@
+import csv
 import json
 import sys
 import time
@@ -5,10 +6,16 @@ import requests
 import numpy as np
 
 import trending
-from threading import Thread
+from threading import Lock, Thread
 from data import wordcount
 
 stop = False
+
+track_file = open("data/out/tracks.csv", "w")
+header = ['timestamp', 'id']
+writer = csv.DictWriter(track_file, fieldnames=header)
+writer.writeheader()
+lock = Lock()
 
 
 class EventSenderThread(Thread):
@@ -49,12 +56,13 @@ class EventSenderThread(Thread):
             sleep_time = np.random.exponential(scale=next_avg_period)
             time.sleep(sleep_time)
             event = self.event_generator.next()
-            self.send_event(event)
+            self.track_event()
+            #self.send_event(event)
 
     def send_event(self, event):
         headers = {'Content-type': 'application/json'}
         response = requests.post(url=self.url, data=event, auth=self.auth, headers=headers)
-        #print("{}: [{} {}] {}".format(
+        # print("{}: [{} {}] {}".format(
         #    self.event_generator.user.sensor_id,
         #    response.status_code,
         #    response.reason,
@@ -63,6 +71,14 @@ class EventSenderThread(Thread):
             self.event_generator.user.sensor_id,
             response.status_code,
             response.reason))
+
+    def track_event(self):
+        now = time.time()
+        id = self.event_generator.user.sensor_id
+        lock.acquire()
+        writer.writerow({'timestamp': now, 'id': id})
+        lock.release()
+        #print("{}: {}".format(now, id))
 
 
 class EventGenerator:
