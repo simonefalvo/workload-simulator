@@ -31,8 +31,12 @@ class TrendUpdaterThread(Thread):
         self._min_spike_trend = config.getfloat('TREND', 'MIN_SPIKE_TREND') - 1
         self._max_spike_trend = config.getfloat('TREND', 'MAX_SPIKE_TREND') - 1
         self._avg_spike_period = config.getfloat('TREND', 'AVG_SPIKE_PERIOD')
+        min_negative_factor = config.getfloat('TREND', 'MIN_NEGATIVE_SPIKE_TREND')
+        max_negative_factor = config.getfloat('TREND', 'MAX_NEGATIVE_SPIKE_TREND')
+        self._min_negative_trend = (min_negative_factor - 1) / min_negative_factor
+        self._max_negative_trend = (max_negative_factor - 1) / max_negative_factor
         self._negative_spike_prob = config.getfloat('TREND', 'NEGATIVE_SPIKE_PROB')
-        self._tolerance = 0.001
+        self._tolerance = config.getfloat('TREND', 'TOLERANCE')
 
     @property
     def avg_conv_rate(self):
@@ -84,14 +88,14 @@ class TrendUpdaterThread(Thread):
         while not stop:
 
             elapsed = time.time() - start
-            #            _update_trend_lin(elapsed, conv_rate)
+#            _update_trend_lin(elapsed, conv_rate)
             _update_trend_exp(elapsed, start_trend, target_trend, conv_rate)
 
             if elapsed >= spike_time:
                 print("spike started")
                 start_trend = trend
                 if np.random.random() <= self.negative_spike_prob:
-                    target_trend = - np.random.uniform(0, 1)
+                    target_trend = - np.random.uniform(self._min_negative_trend, self._max_negative_trend)
                 else:
                     target_trend = np.random.uniform(self.min_spike_trend, self.max_spike_trend)
                 conv_rate = np.random.normal(self.avg_conv_rate, self._avg_conv_rate / 4)
@@ -120,4 +124,4 @@ if __name__ == '__main__':
     tread.start()
     while True:
         time.sleep(1)
-        print(trend)
+        print("trend:", trend)
