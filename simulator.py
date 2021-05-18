@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 
+
 import eventing
 import trending
 from eventing import EventGenerator
@@ -20,7 +21,7 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     auth_config = configparser.ConfigParser()
     config.read('./config.ini')
-    auth_config.read('./auth_config.ini')
+    auth_config.read('./auth-config.ini')
 
     K = config.getfloat('SIMULATOR', 'K')  # time compression factor
     STOP = config.getint('SIMULATOR', 'STOP')
@@ -40,17 +41,20 @@ if __name__ == '__main__':
     sensors_number = int(sys.argv[1])
     print("Number of sensors:", sensors_number, file=sys.stderr)
 
-    np.random.seed(12345)
+    # generate independent streams
+    ss = np.random.SeedSequence(12345)
+    child_seeds = ss.spawn(sensors_number + 1)
 
-    trendUpdater = TrendUpdaterThread()
+    trendUpdater = TrendUpdaterThread(child_seeds[0], K)
     trendUpdater.start()
 
     for sensor_id in range(1, sensors_number + 1):
-        user = User(sensor_id, "name", "name@example.com", AVG_EVENT_PERIOD, VAR_EVENT_PERIOD)
+        rng_seed = child_seeds[sensor_id]
+        user = User(sensor_id, "name", "name@example.com", rng_seed, AVG_EVENT_PERIOD, VAR_EVENT_PERIOD)
         generator = EventGenerator(user)
-        EventSenderThread(generator, K * user.avg_event_period, GATEWAY_URL, auth).start()
+        EventSenderThread(rng_seed, generator, user.avg_event_period / K, GATEWAY_URL, auth).start()
 
-    time.sleep(STOP)
+    time.sleep(STOP / K)
     print("ending simulation...")
     eventing.stop = True
     trending.stop = True

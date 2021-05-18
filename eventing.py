@@ -20,12 +20,17 @@ lock = Lock()
 
 class EventSenderThread(Thread):
 
-    def __init__(self, event_generator, avg_period, url, auth):
+    def __init__(self, rng_seed, event_generator, avg_period, url, auth):
         Thread.__init__(self)
+        self.__rng = np.random.default_rng(rng_seed)
         self.__event_generator = event_generator
         self.__avg_period = avg_period
         self.__url = url
         self.__auth = auth
+
+    @property
+    def rng(self):
+        return self.__rng
 
     @property
     def event_generator(self):
@@ -45,7 +50,7 @@ class EventSenderThread(Thread):
 
     def run(self):
         # random start (at least 30 seconds of time range)
-        start_delay = np.random.uniform(0, max(30.0, self.avg_period))
+        start_delay = self.rng.uniform(0, max(30.0, self.avg_period))
         print("user {}: random start = {} seconds"
               .format(self.event_generator.user.sensor_id, start_delay),
               file=sys.stderr)
@@ -53,11 +58,11 @@ class EventSenderThread(Thread):
 
         while not stop:
             next_avg_period = self.avg_period / (1 + trending.trend)
-            sleep_time = np.random.exponential(scale=next_avg_period)
+            sleep_time = self.rng.exponential(scale=next_avg_period)
             time.sleep(sleep_time)
             event = self.event_generator.next()
             self.track_event()
-            #self.send_event(event)
+            self.send_event(event)
 
     def send_event(self, event):
         headers = {'Content-type': 'application/json'}
